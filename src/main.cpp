@@ -80,6 +80,8 @@ bool disable_active_power = false;
 bool ignore_critical = false;
 bool power_floor_enable = false;
 bool adaptive_perf_enable = false;
+// Adaptive ITMT trips: PID control instead of the default controller
+bool itmt_pid_enable = false;
 
 // check cpuid
 static gboolean ignore_cpuid_check = false;
@@ -188,6 +190,7 @@ int main(int argc, char *argv[]) {
 	gboolean no_daemon = FALSE;
 	gboolean systemd = FALSE;
 	gboolean test_mode = FALSE;
+	gboolean itmt_pid = FALSE;
 	gboolean adaptive = FALSE;
 	gboolean ignore_default_control = FALSE;
 	/*
@@ -249,6 +252,9 @@ int main(int argc, char *argv[]) {
 			{ "power-floor-enable", 0, 0, G_OPTION_ARG_NONE,
 						&power_floor, N_(
 						"Handle power floor event"), nullptr },
+			{ "itmt-pid", 0, 0, G_OPTION_ARG_NONE, &itmt_pid, N_(
+						"adaptive mode: control ITMT trips with a PID "
+						"instead of the default controller"), nullptr },
 			{ nullptr, 0, 0,
 					G_OPTION_ARG_NONE, nullptr, nullptr, nullptr } };
 
@@ -323,6 +329,7 @@ int main(int argc, char *argv[]) {
 	disable_active_power = no_active_power;
 	ignore_critical = no_critical;
 	power_floor_enable = power_floor;
+	itmt_pid_enable = itmt_pid;
 
 	openlog("thermald", LOG_PID, LOG_USER | LOG_DAEMON | LOG_SYSLOG);
 	// Don't care return val

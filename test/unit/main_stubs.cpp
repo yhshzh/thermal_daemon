@@ -12,6 +12,7 @@ bool disable_active_power = false;
 bool ignore_critical = false;
 bool power_floor_enable = false;
 bool adaptive_perf_enable = true;
+bool itmt_pid_enable = false;
 gboolean exclusive_control = FALSE;
 
 /* Set THD_TEST_DEBUG=1 for thermald's debug messages */

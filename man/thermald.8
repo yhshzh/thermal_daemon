@@ -105,7 +105,9 @@ Ignore cpuid check for supported CPU models.
 .B \-\-itmt-pid
 In adaptive mode, control the trips of an ITMT table with a PID controller,
 which settles the power limit near the trip temperature, instead of the
-default controller.
+default controller. The gains are tuned for a 25 W client system and
+scaled with the PL1 range of the ITMT entry. They can be changed in
+/etc/thermald/itmt-pid.xml, which explains each setting.
 .TP
 .B \-\-config-file
 Specify thermal-conf.xml path and ignore default thermal-conf.xml.

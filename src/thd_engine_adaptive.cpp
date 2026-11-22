@@ -305,35 +305,6 @@ void cthd_engine_adaptive::psvt_consolidate() {
 
 #define DEFAULT_SAMPLE_TIME_SEC		5
 
-/*
- * With --itmt-pid: ITMT entries only give a trip and a PL1 range, so they
- * are controlled by an incremental PID with fixed gains. Below the trip the
- * limit is released gradually. Without it, the default controller is used.
- *
- * The PID is time scaled, in velocity form: each call changes PL1 by
- * Kp * e * dt + Kd * (e - last e), e in millicelsius, dt in seconds,
- * PL1 in uW. So Kd acts as the proportional gain (1000: 1 W per C of
- * change) and Kp as the integral rate (30: 30 mW per second per C of
- * error), independent of the poll and sampling intervals.
- *
- * The gains come from a model of a slow skin sensor, the slowest kind of
- * ITMT target: first order with 0.75 C per W, a 60 s time constant and a
- * 20 s delay, read in whole degrees. With Kp 30 / Kd 1000 that loop has a
- * 53 degree phase margin and 14.5 dB gain margin (crossover period about
- * 350 s). Kp 50 / Kd 2000 gives 46 degrees / 9 dB and Kp 100 / Kd 4000
- * 22 degrees / 3 dB, which overshot and oscillated more when tested. The
- * most damped set is used, leaving margin for slower or more sensitive
- * sensors. For a fast sensor (CPU) the integral part is slow and the Kd
- * term, reacting to each degree of rise, gives the quick response.
- *
- * The set point is half a degree below the trip: a whole degree sensor
- * reading e.g. 59.05 C at a 59 C trip would give +0.05 C at the trip and
- * -0.95 C one degree below, throttling 19 times weaker than releasing;
- * at 58.5 C the error is about +-0.5 C either way.
- */
-#define ITMT_PID_KP			30.0
-#define ITMT_PID_KD			1000.0
-#define ITMT_PID_SET_POINT_OFFSET	500
 
 int cthd_engine_adaptive::install_itmt(struct itmt_entry *itmt_entry) {
 	std::string itmt_zone;
@@ -417,14 +388,26 @@ int cthd_engine_adaptive::install_itmt(struct itmt_entry *itmt_entry) {
 	 */
 	pid_param_t pid_param;
 
-	pid_param.valid = 1;
-	pid_param.kp = ITMT_PID_KP;
-	pid_param.ki = 0;
-	pid_param.kd = ITMT_PID_KD;
-	pid_param.mode = PID_INCREMENTAL;
-	pid_param.gradual_release = 1;
-	pid_param.set_point_offset = ITMT_PID_SET_POINT_OFFSET;
-	pid_param.time_scaled = 1;
+	if (itmt_pid_enable) {
+		/* PL1 range of the entry: MAX/MIN resolved to the device range */
+		long long top = (_max_state && _max_state != TRIP_PT_INVALID_TARGET_STATE) ?
+				_max_state : cdev->get_min_state();
+		long long bottom = (_min_state && _min_state != TRIP_PT_INVALID_TARGET_STATE) ?
+				_min_state : cdev->get_max_state();
+		long long range = top > bottom ? top - bottom : bottom - top;
+		double scale = itmt_pid_config.scale(range);
+
+		pid_param.valid = 1;
+		pid_param.kp = itmt_pid_config.kp * scale;
+		pid_param.ki = 0;
+		pid_param.kd = itmt_pid_config.kd * scale;
+		pid_param.mode = PID_INCREMENTAL;
+		pid_param.gradual_release = 1;
+		pid_param.set_point_offset = itmt_pid_config.set_point_offset;
+		pid_param.time_scaled = 1;
+		thd_log_info("ITMT PID %s: PL1 range %lld mW, gain scale %.2f\n",
+				itmt_zone.c_str(), range / 1000, scale);
+	}
 
 	trip_pt.thd_trip_point_add_cdev(*cdev, cthd_trip_point::default_influence,
 	DEFAULT_SAMPLE_TIME_SEC, 0, 0,
@@ -849,6 +832,9 @@ int cthd_engine_adaptive::thd_engine_init(bool ignore_cpuid_check,
 	check_acpi_platform_profile();
 
 	thd_parse_features();
+
+	if (itmt_pid_enable)
+		itmt_pid_config.load();
 
 	parser_disabled = true;
 	force_mmio_rapl = true;

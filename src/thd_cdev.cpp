@@ -551,16 +551,24 @@ int cthd_cdev::thd_cdev_set_state(int set_point, int target_temp,
 			ret += get_min_state();
 		}
 
-		/* Clamp to the trip's own range (ITMT PL1 min/max) */
+		/*
+		 * Clamp to the trip's own range (ITMT PL1 min/max): never less
+		 * limited than _min_state, never more limited than _max_state.
+		 * The latter is applied last, as the default controller does, so
+		 * an entry whose PL1 minimum is above the device range (e.g. 28 W
+		 * with PL1 at most 20 W) doesn't limit at all.
+		 */
 		if (state && pid_param->gradual_release && _min_state && _max_state) {
-			int lo = inverted ? _max_state : _min_state;
-			int hi = inverted ? _min_state : _max_state;
-
-			if (lo <= hi) {
-				if (ret < lo)
-					ret = lo;
-				if (ret > hi)
-					ret = hi;
+			if (inverted) {
+				if (ret > _min_state)
+					ret = _min_state;
+				if (ret < _max_state)
+					ret = _max_state;
+			} else {
+				if (ret < _min_state)
+					ret = _min_state;
+				if (ret > _max_state)
+					ret = _max_state;
 			}
 		}
 

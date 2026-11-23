@@ -133,6 +133,7 @@ int cthd_engine_adaptive::install_passive(struct psv *psv) {
 		point.step = psv->step_size * 1000;
 		point.limit_coeff = psv->limit_coeff;
 		point.unlimit_coeff = psv->unlimit_coeff;
+		point.max_entry = 0;
 
 		for (unsigned int i = 0; i < zone->get_trip_count(); ++i) {
 			cthd_trip_point *trip = zone->get_trip_at_index(i);

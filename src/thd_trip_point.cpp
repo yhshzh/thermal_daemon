@@ -471,9 +471,16 @@ void cthd_trip_point::step_points_finalize() {
 	std::vector<step_point_t> &points = cdevs[0].step_points;
 	step_point_t last = points.back();
 
+	/*
+	 * A last entry with limit MAX: full limit 1 C above it. Its limit
+	 * setting value is PL1 max, so reaching that point doesn't set the
+	 * request at once (see step_control()): the limit coefficient sets how
+	 * fast it goes down.
+	 */
 	if (last.limit == STEP_LIMIT_NONE && last.temp <= INT32_MAX - 1000) {
 		last.temp += 1000;
 		last.limit = STEP_LIMIT_FULL;
+		last.max_entry = 1;
 		points.push_back(last);
 	}
 }
@@ -514,7 +521,9 @@ static int step_limit_state(cthd_cdev *cdev, int limit) {
  * On reaching a curve point (temperature rising past it) the request is set
  * at once to that point's limit if the package power is above it, else to
  * the package power (within the device range); stepping continues from
- * there in the following periods.
+ * there in the following periods. Not for the full limit point after a
+ * last MAX entry: the entry's limit setting value is PL1 max, the request
+ * only steps.
  */
 void cthd_trip_point::step_control(trip_pt_cdev_t &c, unsigned int read_temp) {
 	cthd_cdev *cdev = c.cdev;
@@ -565,8 +574,9 @@ void cthd_trip_point::step_control(trip_pt_cdev_t &c, unsigned int read_temp) {
 
 	c.step_band = band;
 
-	/* Power limits only (dir < 0): states are power in uW */
-	if (reached && dir < 0) {
+	/* Power limits only (dir < 0): states are power in uW. Not for the
+	 * point after a MAX entry, whose limit setting value is PL1 max. */
+	if (reached && dir < 0 && !p.max_entry) {
 		long long point_limit = step_limit_state(cdev, p.limit);
 
 		if (point_limit != no_limit && request > point_limit) {

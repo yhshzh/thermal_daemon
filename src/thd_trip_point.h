@@ -69,6 +69,8 @@ typedef struct {
 	int step;		/* device state units */
 	int limit_coeff;
 	int unlimit_coeff;
+	/* The full limit point after a last MAX entry: reached as PL1 max (no jump) */
+	int max_entry;
 } step_point_t;
 
 class trip_pt_cdev_t{
@@ -187,7 +189,7 @@ public:
 	bool is_step_control() {
 		return cdevs.size() == 1 && cdevs[0].step_points.size();
 	}
-	/* Close a curve ending with no limit: full limit 1 C above it */
+	/* Close a curve ending with no limit (MAX): full limit 1 C above it */
 	void step_points_finalize();
 
 	void delete_cdevs() {

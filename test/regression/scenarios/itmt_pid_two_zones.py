@@ -1,6 +1,7 @@
-"""ITMT with --itmt-pid with two sensors, in two zones, limiting the same PL1: the
-most restrictive entry applies; when that sensor cools down, the other
-one's limit applies again, not the PL1 maximum.
+"""ITMT PID (Enable in itmt-pid.xml) with two sensors, in two zones,
+limiting the same PL1: the most restrictive entry applies; when that
+sensor cools down, the other one's limit applies again, not the PL1
+maximum.
 
 PPCC: PL1 10-35 W. ITMT entries (60 C, written as 59.5 C):
 SEN2 -> PL1 down to 25 W, SEN3 -> down to 15 W, no upper limit.
@@ -13,13 +14,14 @@ SEN2 -> PL1 down to 25 W, SEN3 -> down to 15 W, no upper limit.
 """
 
 import gddv
-from platforms import ppcc, rapl
+from platforms import ITMT_PID_ON, ppcc, rapl
 
 PLATFORM = {
     "zones": ["SEN2", "SEN3"],
     "initial_temps": {"SEN2": 45, "SEN3": 45},
     "rapl": rapl(),
-    "thermald_args": ["--adaptive", "--itmt-pid"],
+    "thermald_args": ["--adaptive"],
+    "conf_files": {"itmt-pid.xml": ITMT_PID_ON},
     "gddv": {
         "ppcc": {"TCPU.D0": ppcc(10, 35)},
         "apct": [(1, [gddv.cond(gddv.DEFAULT)])],

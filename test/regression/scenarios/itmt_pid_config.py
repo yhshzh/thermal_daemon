@@ -1,4 +1,4 @@
-"""--itmt-pid gains from /etc/thermald/itmt-pid.xml, scaled with the PL1
+"""ITMT PID gains from /etc/thermald/itmt-pid.xml, scaled with the PL1
 range of the ITMT entry.
 
 ITMT entry on TCPU at 60 C, PL1 down to 25 W from the PPCC maximum 35 W:
@@ -16,6 +16,7 @@ from platforms import ppcc, rapl
 
 CONFIG = """<?xml version="1.0"?>
 <ItmtPid>
+	<Enable>1</Enable>
 	<Kp>60</Kp>
 	<Kd>fast</Kd>
 	<ReferenceRange>5000</ReferenceRange>
@@ -28,7 +29,7 @@ PLATFORM = {
     "zones": ["TCPU"],
     "initial_temps": {"TCPU": 45},
     "rapl": rapl(),
-    "thermald_args": ["--adaptive", "--itmt-pid"],
+    "thermald_args": ["--adaptive"],
     "conf_files": {"itmt-pid.xml": CONFIG},
     "gddv": {
         "ppcc": {"TCPU.D0": ppcc(10, 35)},

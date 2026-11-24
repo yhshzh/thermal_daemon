@@ -1,5 +1,5 @@
-"""ITMT with --itmt-pid: PL1 is controlled by a PID within the ITMT range
-once the trip is exceeded, and released gradually.
+"""ITMT with the PID enabled in itmt-pid.xml: PL1 is controlled by a PID
+within the ITMT range once the trip is exceeded, and released gradually.
 
 ITMT v1, one entry on TCPU: above 60 C (written as 59.5 C, the trip) PL1
 may go down to 25 W, no upper limit ("MAX"). PPCC: PL1 10-35 W. The PID
@@ -18,13 +18,14 @@ aims half a degree below the trip, at 59 C; the ITMT hysteresis is 2 C.
 """
 
 import gddv
-from platforms import POWER_ON_PL1_W, ppcc, rapl
+from platforms import ITMT_PID_ON, POWER_ON_PL1_W, ppcc, rapl
 
 PLATFORM = {
     "zones": ["TCPU"],
     "initial_temps": {"TCPU": 45},
     "rapl": rapl(),
-    "thermald_args": ["--adaptive", "--itmt-pid"],
+    "thermald_args": ["--adaptive"],
+    "conf_files": {"itmt-pid.xml": ITMT_PID_ON},
     "gddv": {
         "ppcc": {"TCPU.D0": ppcc(10, 35)},
         "apct": [(1, [gddv.cond(gddv.DEFAULT)])],

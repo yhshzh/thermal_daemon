@@ -1,19 +1,20 @@
-"""--itmt-pid with an ITMT entry whose PL1 minimum is above the PPCC
-maximum (as on a Chuwi UniBook: "PL1 28000-MAX" with PL1 15-20 W): the
-entry doesn't limit, as with the default controller.
+"""ITMT PID (Enable in itmt-pid.xml) with an ITMT entry whose PL1 minimum
+is above the PPCC maximum (as on a Chuwi UniBook: "PL1 28000-MAX" with
+PL1 15-20 W): the entry doesn't limit, as with the default controller.
 
   1. TCPU 45 C: PL1 at the PPCC maximum, 20 W.
   2. TCPU 70 C, above the 60 C trip, for 30 s: PL1 stays at 20 W.
 """
 
 import gddv
-from platforms import ppcc, rapl
+from platforms import ITMT_PID_ON, ppcc, rapl
 
 PLATFORM = {
     "zones": ["TCPU"],
     "initial_temps": {"TCPU": 45},
     "rapl": rapl(),
-    "thermald_args": ["--adaptive", "--itmt-pid"],
+    "thermald_args": ["--adaptive"],
+    "conf_files": {"itmt-pid.xml": ITMT_PID_ON},
     "gddv": {
         "ppcc": {"TCPU.D0": ppcc(15, 20)},
         "apct": [(1, [gddv.cond(gddv.DEFAULT)])],

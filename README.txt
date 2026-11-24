@@ -113,6 +113,39 @@ For build, follow the same procedure as Fedora.
 
 Releases
 
+Release 2.5.14-rc1
+- New platforms: SoC power-limit based thermal control for Qualcomm Glymur,
+Kalambo and Mahua. thermal-conf.xml with these rules is installed by default
+(an existing one is kept). OpenRC service script.
+
+- Adaptive mode: handle NotifyPlatform targets; support more than one GDDV
+virtual sensor, with millidegree precision; track every lid/tablet switch
+device; accept Motion conditions; apply hysteresis to Temperature conditions;
+fall back to the default PSVT when a target's PSVT is missing, and to the
+fallback target when no condition matches; ignore IETM target codes that
+aren't handled; find the CPU zone registered as TCPU_PCI; keep PL1 at the
+PL1MAX ceiling when not throttling; keep adaptive mode on D-Bus Reinit.
+
+- Startup races: stop when a ThinkPad's DYTC appears after thermald started;
+retry adaptive mode once when thermal devices appeared after startup instead
+of falling back until the next boot; start after intel_rapl sysfs is
+available; log when ignore_adaptive exists.
+
+- Data vault parsing: stricter length validation, limit on nested compressed
+segments, PPCC with only a PL1 entry, ITMT v1 entries without the trailing
+string, PSVT temperatures validated.
+
+- Fixes: boolean command line options overwrote each other; a trip's
+PidControl was ignored in zones defined by thermal-conf.xml; the engine lock
+is held while handling engine messages; sensors that need polling are
+tracked without a 32-bit limit; cooling device states and steps from D-Bus
+and thermal-conf.xml are limited; D-Bus SetUserMaxTemperature replies; a
+busy loop on a removed input device; CRLF line endings in the SPEL backend.
+
+- Testing: a VM regression suite (virtme-ng with a test kernel module),
+unit tests and fuzzers for the data vault and XML parsers, a hardware smoke
+test, all run in CI.
+
 Release 2.5.13
 - Restricted Qualcomm SPEL PL initialization to XML-defined cooling devices only.
 - Fixed handling of large RAPL PL1 values during restore registration.

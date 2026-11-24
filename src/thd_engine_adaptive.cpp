@@ -389,7 +389,7 @@ int cthd_engine_adaptive::install_itmt(struct itmt_entry *itmt_entry) {
 	 */
 	pid_param_t pid_param;
 
-	if (itmt_pid_enable) {
+	if (itmt_pid_config.enable) {
 		/* PL1 range of the entry: MAX/MIN resolved to the device range */
 		long long top = (_max_state && _max_state != TRIP_PT_INVALID_TARGET_STATE) ?
 				_max_state : cdev->get_min_state();
@@ -412,7 +412,7 @@ int cthd_engine_adaptive::install_itmt(struct itmt_entry *itmt_entry) {
 
 	trip_pt.thd_trip_point_add_cdev(*cdev, cthd_trip_point::default_influence,
 	DEFAULT_SAMPLE_TIME_SEC, 0, 0,
-	itmt_pid_enable ? &pid_param : nullptr, 1, _max_state, _min_state);
+	itmt_pid_config.enable ? &pid_param : nullptr, 1, _max_state, _min_state);
 
 	zone->add_trip(trip_pt, 1);
 	zone->zone_cdev_set_binded();
@@ -934,8 +934,7 @@ int cthd_engine_adaptive::thd_engine_init(bool ignore_cpuid_check,
 
 	thd_parse_features();
 
-	if (itmt_pid_enable)
-		itmt_pid_config.load();
+	itmt_pid_config.load();
 
 	parser_disabled = true;
 	force_mmio_rapl = true;

@@ -1,6 +1,6 @@
 /*
- * thd_itmt_pid_config.h: PID gains for ITMT trips (--itmt-pid), and
- * TDCONFDIR/itmt-pid.xml to tune them
+ * thd_itmt_pid_config.h: PID control of ITMT trips, enabled and tuned in
+ * TDCONFDIR/itmt-pid.xml
  *
  * Copyright (C) 2026 Intel Corporation. All rights reserved.
  *
@@ -29,7 +29,7 @@
 #include <string>
 
 /*
- * With --itmt-pid: ITMT entries only give a trip and a PL1 range, so they
+ * With Enable 1 in itmt-pid.xml: ITMT entries only give a trip and a PL1 range, so they
  * are controlled by an incremental PID. Below the trip the limit is released
  * gradually. Without it, the default controller is used.
  *
@@ -61,6 +61,7 @@
  * TDCONFDIR/itmt-pid.xml, all elements optional:
  *
  *	<ItmtPid>
+ *		<Enable>1</Enable>		0 or missing: default controller
  *		<Kp>30</Kp>
  *		<Kd>1000</Kd>
  *		<SetPointOffset>500</SetPointOffset>	millicelsius
@@ -79,6 +80,7 @@
 
 class cthd_itmt_pid_config {
 public:
+	bool enable = false;
 	double kp = ITMT_PID_KP;
 	double kd = ITMT_PID_KD;
 	int set_point_offset = ITMT_PID_SET_POINT_OFFSET;
@@ -87,7 +89,7 @@ public:
 	double scale_min = ITMT_PID_SCALE_MIN;
 	double scale_max = ITMT_PID_SCALE_MAX;
 
-	/* Read TDCONFDIR/itmt-pid.xml if present; defaults otherwise */
+	/* Read TDCONFDIR/itmt-pid.xml if present; disabled, defaults otherwise */
 	void load();
 	void load(const std::string &filename);
 

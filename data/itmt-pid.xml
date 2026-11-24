@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!--
-  PID control of ITMT trips, used when thermald runs with "adaptive mode"
-  and the option itmt-pid.
+  PID control of ITMT trips, used when thermald runs in adaptive mode and
+  Enable below is 1.
 
   An ITMT table entry gives a trip temperature for a sensor (usually a skin
   sensor) and a PL1 range. Once the sensor reaches the trip, a PID moves the
@@ -11,8 +11,8 @@
 
   Each element is optional; a missing or invalid one keeps the default shown
   here. These are the built-in defaults, tuned for a common 25 W client
-  system. thermald reads this file at start. Restart thermald after a
-  change.
+  system. Without this file, or if it can't be parsed, the PID is not used.
+  thermald reads this file at start. Restart thermald after a change.
 
   How the PID acts, every 5 s while the trip is active (e: sensor
   temperature minus the set point, in millicelsius):
@@ -24,6 +24,13 @@
   PL1 is cut at least as fast as the default controller would.
 -->
 <ItmtPid>
+	<!--
+	  Enable: 1 to control ITMT trips with the PID described here. 0: the
+	  default controller, which cuts PL1 in steps while the sensor is above
+	  the trip and releases it again once the sensor is 2 C below the trip.
+	-->
+	<Enable>0</Enable>
+
 	<!--
 	  Kp: how fast PL1 keeps changing while the temperature stays away from
 	  the set point, in uW per millicelsius per second. 30: 30 mW per second

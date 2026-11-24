@@ -102,13 +102,6 @@ governor for thermal sysfs and take over control.
 .B \-\-ignore-cpuid-check
 Ignore cpuid check for supported CPU models.
 .TP
-.B \-\-itmt-pid
-In adaptive mode, control the trips of an ITMT table with a PID controller,
-which settles the power limit near the trip temperature, instead of the
-default controller. The gains are tuned for a 25 W client system and
-scaled with the PL1 range of the ITMT entry. They can be changed in
-/etc/thermald/itmt-pid.xml, which explains each setting.
-.TP
 .B \-\-config-file
 Specify thermal-conf.xml path and ignore default thermal-conf.xml.
 .TP
@@ -128,7 +121,10 @@ up with lower power limits.
 .TP
 .B \-\-adaptive
 Use DPTF adaptive tables when present. This will ignore thermald config via
-xml files.
+xml files. The trips of an ITMT table can instead be controlled by a PID
+controller, which settles the power limit near the trip temperature: set
+Enable to 1 in /etc/thermald/itmt-pid.xml, which also holds the PID gains
+and explains each setting.
 .TP
 .B \-\-test-mode
 Force use adaptive mode and exit if not supported, instead of restarting in

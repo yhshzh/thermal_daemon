@@ -1,6 +1,6 @@
 /*
- * thd_itmt_pid_config.cpp: PID gains for ITMT trips (--itmt-pid), and
- * TDCONFDIR/itmt-pid.xml to tune them
+ * thd_itmt_pid_config.cpp: PID control of ITMT trips, enabled and tuned in
+ * TDCONFDIR/itmt-pid.xml
  *
  * Copyright (C) 2026 Intel Corporation. All rights reserved.
  *
@@ -51,7 +51,7 @@ void cthd_itmt_pid_config::load(const std::string &filename) {
 	xmlDoc *doc = xmlReadFd(fd, filename.c_str(), nullptr, thd_xml_parse_options);
 	close(fd);
 	if (!doc) {
-		thd_log_warn("%s: could not parse, using the default ITMT PID gains\n",
+		thd_log_warn("%s: could not parse, ITMT PID disabled\n",
 				filename.c_str());
 		return;
 	}
@@ -64,7 +64,7 @@ void cthd_itmt_pid_config::load(const std::string &filename) {
 	xmlNode *root = xmlDocGetRootElement(doc);
 
 	if (!root || thd_strcasecmp_n((const char *) root->name, "ItmtPid")) {
-		thd_log_warn("%s: no ItmtPid element, using the default ITMT PID gains\n",
+		thd_log_warn("%s: no ItmtPid element, ITMT PID disabled\n",
 				filename.c_str());
 		xmlFreeDoc(doc);
 		return;
@@ -89,7 +89,11 @@ void cthd_itmt_pid_config::load(const std::string &filename) {
 		int i;
 		int ret;
 
-		if (!thd_strcasecmp_n(name, "Kp")) {
+		if (!thd_strcasecmp_n(name, "Enable")) {
+			ret = parse_int_value(str, &i, 0, 1);
+			if (ret == THD_SUCCESS)
+				enable = i;
+		} else if (!thd_strcasecmp_n(name, "Kp")) {
 			ret = parse_double_value(str, &d, 0, 1e6);
 			if (ret == THD_SUCCESS)
 				kp = d;
@@ -136,8 +140,9 @@ void cthd_itmt_pid_config::load(const std::string &filename) {
 		scale_max = ITMT_PID_SCALE_MAX;
 	}
 
-	thd_log_info("%s: ITMT PID Kp %g Kd %g set point offset %d scale %s"
-			" (reference %d mW, %g-%g)\n", filename.c_str(), kp, kd,
+	thd_log_info("%s: ITMT PID %s, Kp %g Kd %g set point offset %d scale %s"
+			" (reference %d mW, %g-%g)\n", filename.c_str(),
+			enable ? "enabled" : "disabled", kp, kd,
 			set_point_offset, scale_with_range ? "with range" : "off",
 			reference_range_mw, scale_min, scale_max);
 }

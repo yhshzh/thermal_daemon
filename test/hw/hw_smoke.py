@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 """Hardware smoke test: run this tree's thermald on a real machine.
 
-    sudo test/hw/hw_smoke.py [--seconds 60] [--load 30] [--no-adaptive]
-                             [--cpuid-check] [--loglevel info|debug]
+    sudo test/hw/hw_smoke.py [--seconds 60] [--load 30] [--stress-ng [METHOD]]
+                             [--no-adaptive] [--cpuid-check]
+                             [--loglevel info|debug]
 
 Checks, on the real platform (its own data vault, sensors and RAPL):
   - thermald starts and keeps running (in adaptive mode unless
@@ -24,7 +25,9 @@ more detail. plot.png (temperatures, package power and PL1 over time)
 and trace.csv are written there too; the plot needs python3-matplotlib.
 
 --load runs a busy loop on every CPU for that many seconds in the
-middle of the run, so thermald has something to control.
+middle of the run, so thermald has something to control. With
+--stress-ng the load is stress-ng's CPU stressor on every CPU instead
+(method matrixprod by default), which draws more power.
 
 Stop the thermald service first; this script won't. A report, the
 thermald log and a trace go to /tmp/thermald-hw/<host>-<time>/.
@@ -38,6 +41,7 @@ import json
 import multiprocessing
 import os
 import re
+import shutil
 import signal
 import socket
 import subprocess
@@ -126,6 +130,10 @@ def main():
     ap.add_argument("--seconds", type=int, default=60)
     ap.add_argument("--load", type=int, default=0,
                     help="seconds of full CPU load in the middle")
+    ap.add_argument("--stress-ng", nargs="?", const="matrixprod", default=None,
+                    metavar="METHOD",
+                    help="load with stress-ng --cpu-method METHOD "
+                    "(default matrixprod) instead of a busy loop")
     ap.add_argument("--no-adaptive", action="store_true")
     ap.add_argument("--cpuid-check", action="store_true",
                     help="keep thermald's CPU model and platform check "
@@ -137,6 +145,10 @@ def main():
 
     if os.geteuid() != 0:
         print("run as root", file=sys.stderr)
+        return 2
+    if args.stress_ng and not shutil.which("stress-ng"):
+        print("stress-ng not found: install it or drop --stress-ng",
+              file=sys.stderr)
         return 2
     if subprocess.run(["systemctl", "is-active", "--quiet", "thermald"]).returncode == 0:
         print("the thermald service is running: stop it first "
@@ -177,17 +189,28 @@ def main():
         if args.load and not workers and now >= load_from:
             report["load_s"] = [round(now - start, 1),
                                 round(now - start + args.load, 1)]
-            workers = [multiprocessing.Process(target=busy,
-                                               args=(now + args.load,))
-                       for _ in range(os.cpu_count())]
-            for w in workers:
-                w.start()
+            if args.stress_ng:
+                report["load"] = "stress-ng --cpu-method " + args.stress_ng
+                workers = [subprocess.Popen(
+                    ["stress-ng", "--cpu", "0", "--cpu-method", args.stress_ng,
+                     "--timeout", "%ds" % args.load, "--quiet"],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)]
+            else:
+                report["load"] = "busy loop"
+                workers = [multiprocessing.Process(target=busy,
+                                                   args=(now + args.load,))
+                           for _ in range(os.cpu_count())]
+                for w in workers:
+                    w.start()
         trace.append({"t": round(now - start, 1), "pl1_w": mmio_pl1(),
                       "pkg_power_w": package.sample(),
                       "temps": zone_temps()})
         time.sleep(0.5)
     for w in workers:
         w.terminate()
+    for w in workers:
+        if isinstance(w, subprocess.Popen):
+            w.wait()
 
     exited_early = proc.poll() is not None
     if not exited_early:
